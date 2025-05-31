@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project is an AI-powered agent designed to analyse PDF financial reports. It leverages Large Language Models (LLMs) via the Gemini API, the LangChain framework for agentic capabilities, and PyMuPDF for text extraction. The agent can understand the content of a financial report, answer user queries, generate summaries, detect revenue trends, and highlight key financial metrics in a conversational manner.
+This project is an AI-powered agent designed to analyse PDF financial reports. It leverages Large Language Models (LLMs) via the Gemini API, the multimodality capability of Gemini-2.0-Flash, and the LangChain framework for agentic capabilities. The agent can understand the content of a financial report (including graphs, images, diagrams, tables etc.), answer user queries, generate summaries, detect revenue trends, and highlight key financial metrics in a conversational manner.
 
 ### 🛑 This is a personal project and not open for contributions. Feel free to explore, fork, or reuse with credit, but please do not submit pull requests.
 
@@ -10,12 +10,12 @@ This project is an AI-powered agent designed to analyse PDF financial reports. I
 ## Why I Built This
 Back in February 2025 I tried to learn about investment. As a self-learning investor and tech enthusiast, I wanted a more efficient way to analyze company financial reports without manually digging through dozens of pages. That's why I built the Virtual Financial Analyst AI Agent — a smart, conversational tool that can read financial reports, summarize them, extract key metrics, analyze revenue trends, and answer questions in real time.
 
-Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring financial intelligence closer to everyday investors like myself. Whether you're a beginner trying to understand quarterly earnings or a seasoned investor looking for key numbers fast, this tool is designed to make financial analysis more accessible, faster, and even enjoyable.
+Powered by **Gemini-2.0-Flash** and **LangChain**, this agent leverages AI to bring financial intelligence closer to everyday investors like myself. Whether you're a beginner trying to understand quarterly earnings or a seasoned investor looking for key numbers fast, this tool is designed to make financial analysis more accessible, faster, and even enjoyable.
 
 
 ## Features
 
-*   **PDF Text Extraction:** Extracts text content from uploaded PDF financial reports using PyMuPDF.
+*   **Multimodal Context Understanding:** This system uses Gemini-2.0-Flash which can understand multimodal inputs, and can provide more related response to users query. 
 *   **Conversational Interface:** Users can interact with the agent through a command-line interface, asking questions about the report.
 *   **Contextual Memory:** The agent retains conversation history to understand follow-up questions.
 *   **Custom Analytical Tools:**
@@ -28,7 +28,8 @@ Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring
 ## Tech Stack
 
 *   **Programming Language:** Python 3.X
-*   **LLM API:** Google Gemini API (e.g., Gemini 2.0 Flash Exp)
+*   **LLM API:** Google Gemini API (e.g., Gemini 2.0 Flash)
+*   **LLM SDK:** Google Genai
 *   **LLM Framework:** LangChain
 *   **PDF Parsing:** PyMuPDF (Fitz)
 *   **API Key Management:** python-dotenv
@@ -41,7 +42,6 @@ Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring
 ├── **src/** # Source code \
 │ ├── **init.py** \
 │ ├── **agent.py** # Agent logic, tools integration, memory \
-│ ├── **pdf_processor.py** # PDF text extraction \
 │ ├── **tools.py** # Custom LangChain tools for analysis \
 │ └── **utils.py** # Utility functions \
 ├── **.env** # Stores API keys (Not uploaded for obvious reason, duh) \
@@ -77,7 +77,7 @@ Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring
     ```txt
     langchain
     langchain-google-genai
-    pymupdf
+    google-genai
     python-dotenv
     ```
     Then run:
@@ -122,8 +122,6 @@ Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring
 
 ## Future Enhancements
 
-*   **OCR Integration:** Implement OCR (e.g., using PaddleOCR) to extract text from images within PDFs (charts, tables as images), or even better,
-*   **Google-genai Integration:** Use Gemini-2.0-Flash Multimodal capabilities to read the entire PDF, without having the need of OCR.
 *   **Advanced RAG:** For extremely large documents (>1M tokens) or more precise information retrieval, integrate a full RAG pipeline with vector stores.
 *   **Quantitative Analysis Tools:** Add tools for performing calculations based on extracted data.
 *   **Broader Document Support:** Extend to analyze other financial document types (10-Ks, earnings call transcripts).
