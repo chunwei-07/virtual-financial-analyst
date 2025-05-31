@@ -122,8 +122,9 @@ Powered by **Gemini models** and **LangChain**, this agent leverages AI to bring
 
 ## Future Enhancements
 
-*   **OCR Integration:** Implement OCR (e.g., using PaddleOCR) to extract text from images within PDFs (charts, tables as images).
-*   **Advanced RAG:** For extremely large documents or more precise information retrieval, integrate a full RAG pipeline with vector stores.
+*   **OCR Integration:** Implement OCR (e.g., using PaddleOCR) to extract text from images within PDFs (charts, tables as images), or even better,
+*   **Google-genai Integration:** Use Gemini-2.0-Flash Multimodal capabilities to read the entire PDF, without having the need of OCR.
+*   **Advanced RAG:** For extremely large documents (>1M tokens) or more precise information retrieval, integrate a full RAG pipeline with vector stores.
 *   **Quantitative Analysis Tools:** Add tools for performing calculations based on extracted data.
 *   **Broader Document Support:** Extend to analyze other financial document types (10-Ks, earnings call transcripts).
 *   **GUI:** Develop a graphical user interface using Streamlit, Gradio, or a web framework.
