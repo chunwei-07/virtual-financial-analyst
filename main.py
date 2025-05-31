@@ -101,12 +101,6 @@ def main_conversational_loop():
     if not extracted_text:
         print("Failed to extract text from PDF. Exiting...")
         return
-    
-    # CONTEXT WINDOW CONSIDERATION
-    # The entire extracted_text may be too large for LLM context window
-    # For now, the agent's placeholder "DocumentSearch" tool will get a small excerpt.
-    # The LLM will implicitly have access to what fits in its context when the agent runs.
-    # A more robust solution would involved summarization or RAG
 
     print(f"Successfully extracted {len(extracted_text)} characters from the PDF.")
     print("The agent will use this document for answering your questions.")
