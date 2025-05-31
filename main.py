@@ -1,29 +1,44 @@
 import os
 from dotenv import load_dotenv
+from google import genai
+from google.genai.types import File
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from google.api_core.exceptions import GoogleAPIError
-from langchain_core.exceptions import OutputParserException
-
-from src.pdf_processor import extract_text_from_pdf
 from src.agent import create_financial_agent
 
-# Configure LLM model name
-LLM_MODEL_NAME = "gemini-2.0-flash-exp"
+# Necessary Parameters
+LLM_MODEL_NAME = "gemini-2.0-flash"
 DATA_DIR = "data"
+uploaded_file_details = None   # To store URI and mime_type
 
-# Initialize Gemini
+# Set up Genai SDK and LLM
+load_dotenv()
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+# GenAI SDK Client Setup - set as a global var
+client = genai.Client(api_key=gemini_api_key)
+
+
+
+# Initialize Gemini for LangChain and GenAI SDK
 def initialize_llm():
     """
     Initializes and returns the Gemini LLM with streaming enabled.
     """
-    load_dotenv()
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
-
     if not gemini_api_key:
         print("Error: GEMINI_API_KEY not found. Make sure it's set in your .env file.")
         return None
     
+    # GenAI SDK Initialization
+    try:
+        if client:
+            print("Google GenAI SDK configured successfully for file operations.")
+    except Exception as e:
+        print(f"Error configuring Google GenAI SDK: {e}")
+        print("File Uploading might not work. Ensure GEMINI_API_KEY is valid.")
+        return None
+    
+    # LangChain Initialization
     try:
         llm = ChatGoogleGenerativeAI(
             model=LLM_MODEL_NAME,
@@ -31,11 +46,27 @@ def initialize_llm():
             temperature=0.2,
             disable_streaming=False
         )
-        print(f"Gemini LLM ({LLM_MODEL_NAME}) initialized successfully.")
+        print(f"LangChain Gemini LLM ({LLM_MODEL_NAME}) initialized successfully.")
         return llm
     except Exception as e:
         print(f"Error initializing Gemini LLM ({LLM_MODEL_NAME}): {e}")
         print("Please check your API key, model name, and Internet connection.")
+        return None
+    
+
+# Upload PDF file to Gemini
+def upload_pdf_to_gemini(pdf_path: str, display_name: str) -> File | None:
+    """
+    Uploads the PDF file to Gemini and returns File object.
+    """
+    print(f"\nUploading '{display_name}' to Gemini... This may take a moment.")
+    try:
+        pdf_file = client.files.upload(file=pdf_path)
+        print(f"File uploaded successfully. URI: {pdf_file.uri}")
+        return pdf_file
+    except Exception as e:
+        print(f"Error uploading PDF to Gemini: {e}")
+        print("Please check API key permissions for file uploading and network connection.")
         return None
     
 def get_pdf_path_from_user() -> str | None:
@@ -85,9 +116,12 @@ def get_pdf_path_from_user() -> str | None:
 
 # Main function
 def main_conversational_loop():
+    # global uploaded_file_details
+
+    # LLM and SDK Initialization
     llm = initialize_llm()
     if not llm:
-        print("Exiting due to LLM initialization failure.")
+        print("LLM or GenAI SDK initialization failure. Exiting...")
         return
     
     # PDF Loading
@@ -96,29 +130,52 @@ def main_conversational_loop():
         print("No PDF file selected. Exiting...")
         return
 
-    print(f"\nProcessing PDF: {pdf_path}")
-    extracted_text = extract_text_from_pdf(pdf_path)
-    if not extracted_text:
-        print("Failed to extract text from PDF. Exiting...")
+    # Upload PDF to Gemini
+    pdf_display_name = os.path.basename(pdf_path)
+    gemini_file_object = upload_pdf_to_gemini(pdf_path, pdf_display_name)
+    if not gemini_file_object:
+        print("PDF Upload Failure. Exiting...")
         return
+    
+    # print("DEBUG: Uploaded file object:", vars(gemini_file_object))
 
-    print(f"Successfully extracted {len(extracted_text)} characters from the PDF.")
-    print("The agent will use this document for answering your questions.")
+    # Wrap file object and display name together
+    file_context = {
+        "file": gemini_file_object,
+        "display_name": pdf_display_name
+    }
+    
+    # Store URI and MIME type for tools
+    # uploaded_file_details = {
+    #     "uri": gemini_file_object.uri,
+    #     "mime_type": gemini_file_object.mime_type,
+    #     "display_name": gemini_file_object.display_name
+    # }
 
-    # Agent Creation
-    financial_agent_executor = create_financial_agent(llm, extracted_text)
+    # Agent Creation. Passing file details
+    financial_agent_executor = create_financial_agent(llm, file_context)
     if not financial_agent_executor:
         print("Failed to create the financial agent. Exiting...")
         return
     
-    print("\nFinancial Report Analyzer Agent is ready.")
+    print(f"\nFinancial Report Analyzer Agent is ready to discuss '{pdf_display_name}'.")
     print("Type 'exit' or 'quit' to end the conversation.")
     print("Ask questions about the loaded financial report.")
     print("-" * 50)
+
+    # For now, the tools will get the URI and reference it in their prompts
     
     while True:
         user_query = input("\nYou: ")
         if user_query.lower() in ["exit", "quit"]:
+            # Clean up the uploaded file from Gemini
+            if gemini_file_object and gemini_file_object.uri:
+                try:
+                    print(f"\nAttempting to delete uploaded file: {pdf_display_name} ({gemini_file_object.uri})")
+                    client.files.delete(name=gemini_file_object.name)
+                    print("File deleted successfully from Gemini.")
+                except Exception as e:
+                    print(f"Could not delete file from Gemini: {e}. It may be auto-deleted later by Google.")
             print("Exiting agent. Goodbye!")
             break
         if not user_query.strip():
@@ -135,17 +192,6 @@ def main_conversational_loop():
                     full_response_content += chunk["output"]
             print()   # Add a newline after full response is streamed
 
-        except OutputParserException as ope:
-            print("\n\n[Agent Error] I had trouble understanding the last response structure. Let's try that again, or rephrase your query.")
-            print(f"Details: {ope}")
-        except GoogleAPIError as gae:
-            print(f"\n\n[API Error] A Google API error occurred: {gae.message}")
-            print("This could be due to network issues, API key problems, or rate limits.")
-            if "PERMISSION_DENIED" in str(gae) or "API key not valid" in str(gae):
-                print("Please double check your GEMINI_API_KEY and ensure it has the correct permissions.")
-        except ConnectionError as ce:
-            print(f"\n\n[Network Error]: Could not connect: {ce}")
-            print("Please check your Internet connection.")
         except Exception as e:
             print(f"\n\n[Unexpected Error] An unexpected error occurred: {e}")
             print("If this persists, please report the issue.")
