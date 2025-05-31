@@ -4,6 +4,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import Tool
+from google.genai.types import File
 
 from src.tools import (
     generate_summary_tool,
@@ -13,7 +14,9 @@ from src.tools import (
 
 # Basic prompt template for the ReAct agent
 REACT_PROMPT_TEMPLATE = """
-Answer the following questions as best you can. You have access to the following tools:
+Answer the following questions as best you can about the financial document provided
+(details will be given to tools).
+You have access to the following tools:
 
 {tools}
 
@@ -39,14 +42,12 @@ New input: {input}
 
 
 # Create agent
-def create_financial_agent(llm: ChatGoogleGenerativeAI, document_text: str):
+# The file_details dict will contain: {"uri": str, "mime_type": str, "display_name": str}
+def create_financial_agent(llm: ChatGoogleGenerativeAI, file_context: dict):
     """
-    Create a conversational financial agent wiyh custom tools.
-
-    Args:
-        llm: The initialized language model.
-        document_text: The text content of the financial report.
+    Create a conversational financial agent using an uploaded Gemini File Object.
     """
+    print(f"Agent created to analyze: {file_context['display_name']} (URI: {file_context['file'].uri})")
 
     # To adapt tool functions for LangChain agent
     # Use functools.partial to "pre-fill" llm and document_text argument.
@@ -56,13 +57,13 @@ def create_financial_agent(llm: ChatGoogleGenerativeAI, document_text: str):
     # If manually creating Tool objects, need specify them.
     # Since @tool have comprehensive docstrings, these will serve as desc.
     summary_tool_with_context = functools.partial(
-        generate_summary_tool, llm=llm, document_text=document_text
+        generate_summary_tool, llm=llm, file_context=file_context
     )
     revenue_tool_with_context = functools.partial(
-        detect_revenue_trends_tool, llm=llm, document_text=document_text
+        detect_revenue_trends_tool, llm=llm, file_context=file_context
     )
     metrics_tool_with_context = functools.partial(
-        highlight_key_financial_metrics_tool, llm=llm, document_text=document_text
+        highlight_key_financial_metrics_tool, llm=llm, file_context=file_context
     )
 
     # Create LangChain Tool Objects
@@ -101,11 +102,11 @@ def create_financial_agent(llm: ChatGoogleGenerativeAI, document_text: str):
         agent=agent,
         tools=tools,
         memory=memory,
-        verbose=False,
+        verbose=True,
         handle_parsing_errors="Check your output and make sure it conforms to the expected ReAct format. Ensure the Action is one of the available tools names.",
         max_iterations=5
         #early_stopping_method="generate"
     )
 
-    print("Financial agent created successfully.")
+    print("Financial agent (multimodal via File API) created successfully.")
     return agent_executor
